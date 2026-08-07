@@ -11,6 +11,7 @@ const NAV = [
     { href: "/app", label: "Home" },
     { href: "/results", label: "Results" },
     { href: "/trends", label: "Trends" },
+    { href: "/advisor", label: "Overview" },
     { href: "/reminders", label: "Reminders" },
     { href: "/sharing", label: "Sharing" },
     { href: "/profile", label: "Profile" },

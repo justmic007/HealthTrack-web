@@ -320,3 +320,31 @@ export function getProfile(): Promise<PatientProfile> {
 export function updateProfile(body: PatientProfileUpdate): Promise<PatientProfile> {
   return api.put<PatientProfile>("/api/v1/profile/me", body);
 }
+
+// ---- whole-picture advisor (recommendations) ------------------------------
+export type SuggestedReminder = {
+  analyte: string;
+  flag: string;
+  reason: string;
+  title: string;
+};
+
+export type Recommendation = {
+  status: string; // "ok" | "no_data" | "deferred"
+  recommendations: string | null; // markdown (null only when no_data)
+  citations: Citation[];
+  suggested_reminders: SuggestedReminder[];
+};
+
+export function getRecommendations(): Promise<Recommendation> {
+  return api.get<Recommendation>("/api/v1/advisor/recommendations");
+}
+
+// Accept a suggested reminder — patient picks WHEN (due_datetime required).
+export function acceptSuggestedReminder(body: {
+  title: string;
+  due_datetime: string; // ISO
+  test_result_id?: string;
+}): Promise<{ id: string; title: string; due_datetime: string }> {
+  return api.post("/api/v1/advisor/reminders/accept", body);
+}
