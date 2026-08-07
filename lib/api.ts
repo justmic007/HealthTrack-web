@@ -388,3 +388,62 @@ export type SharedPage = {
 export function listSharedWithMe(limit = 50, offset = 0): Promise<SharedPage> {
   return api.get<SharedPage>(`/api/v1/sharing/shared-with-me?limit=${limit}&offset=${offset}`);
 }
+
+// ---- lab: create results, draft summaries, list lab results ---------------
+export type LabResult = {
+  id: string;
+  patient_id: string | null;
+  title: string;
+  date_taken: string;
+  date_uploaded: string;
+  status: string;
+  summary_text: string | null;
+  raw_data: { test_type?: string; result_type?: string; analytes?: unknown[] } | null;
+  patient_name: string | null;
+  patient_email: string | null;
+  lab_name: string | null;
+  file_url: string | null;
+};
+
+export function listLabResults(limit = 50, offset = 0): Promise<Page<LabResult>> {
+  return api.get<Page<LabResult>>(`/api/v1/test-results?limit=${limit}&offset=${offset}`);
+}
+
+// Ask the backend to draft a plain-language summary from raw_data (stateless).
+export function draftSummary(body: { patient_email: string; raw_data: unknown }): Promise<{ draft: string }> {
+  return api.post<{ draft: string }>("/api/v1/test-results/draft-summary", body);
+}
+
+// Create a test result. Uses multipart/form-data (optional file). raw_data is
+// JSON-stringified into a form field, matching TestResultCreateForm.
+export async function createTestResult(input: {
+  patient_email: string;
+  title: string;
+  date_taken: string;   // ISO
+  status: string;       // normal | borderline | abnormal
+  summary_text: string;
+  raw_data?: unknown;   // will be JSON.stringify'd
+  file?: File | null;
+}): Promise<LabResult> {
+  const fd = new FormData();
+  fd.append("patient_email", input.patient_email);
+  fd.append("title", input.title);
+  fd.append("date_taken", input.date_taken);
+  fd.append("status", input.status);
+  fd.append("summary_text", input.summary_text);
+  if (input.raw_data != null) fd.append("raw_data", JSON.stringify(input.raw_data));
+  if (input.file) fd.append("file", input.file);
+
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}/api/v1/test-results`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd, // do NOT set Content-Type; the browser sets the multipart boundary
+  });
+  if (!res.ok) {
+    let detail = `Request failed (${res.status})`;
+    try { const j = await res.json(); detail = (j as { detail?: string }).detail ?? detail; } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<LabResult>;
+}
