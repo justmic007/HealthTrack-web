@@ -239,3 +239,36 @@ export async function downloadReminderIcs(id: string, title: string): Promise<vo
     a.remove();
     URL.revokeObjectURL(url);
 }
+
+
+// ---- sharing --------------------------------------------------------------
+export type Share = {
+    id: string;
+    test_result_id: string;
+    patient_id: string;
+    caregiver_id: string;
+    date_shared: string;
+    is_active: boolean;
+    test_result_title: string;
+    caregiver_name: string;
+    caregiver_license_type: string | null;
+    caregiver_license_number: string | null;
+    caregiver_license_verified: boolean;
+};
+
+export type ShareCreate = {
+    test_result_id: string;
+    caregiver_email: string;
+};
+
+export function listMyShares(): Promise<Share[]> {
+    return api.get<Share[]>("/api/v1/sharing/my-shares");
+}
+
+export function createShare(body: ShareCreate): Promise<Share> {
+    return api.post<Share>("/api/v1/sharing", body);
+}
+
+export function revokeShare(id: string): Promise<void> {
+    return api.del<void>(`/api/v1/sharing/${id}`);
+}
