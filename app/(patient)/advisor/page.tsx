@@ -1,4 +1,4 @@
-// app/(patient)/advisor/page.tsx — whole-picture advisor across all results.
+// app/(patient)/advisor/page.tsx — whole-picture advisor across all results, with time window.
 "use client";
 
 import { useState } from "react";
@@ -12,6 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const WINDOWS: { label: string; months: number | null }[] = [
+  { label: "6 months", months: 6 },
+  { label: "12 months", months: 12 },
+  { label: "All", months: null },
+];
 
 function SuggestedRow({ s }: { s: SuggestedReminder }) {
   const [open, setOpen] = useState(false);
@@ -69,12 +75,16 @@ export default function AdvisorRecommendationsPage() {
   const [rec, setRec] = useState<Recommendation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [months, setMonths] = useState<number | null>(null); // default All
+  const [generatedWindow, setGeneratedWindow] = useState<string>("");
 
-  async function load() {
+  async function load(m: number | null) {
     setError(null);
     setLoading(true);
     try {
-      setRec(await getRecommendations());
+      const r = await getRecommendations(m);
+      setRec(r);
+      setGeneratedWindow(WINDOWS.find((w) => w.months === m)?.label ?? "All");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load recommendations");
     } finally {
@@ -86,19 +96,30 @@ export default function AdvisorRecommendationsPage() {
     <div className="mx-auto max-w-3xl p-4 sm:p-8">
       <h1 className="mb-1 text-2xl font-semibold">Your whole picture</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        AI guidance across all your results together — grounded in cited public health sources. Not medical advice.
+        AI guidance across your results together — grounded in cited public health sources. Not medical advice.
       </p>
 
-      {!rec && !loading && (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="mb-4 text-sm text-muted-foreground">
-              Generate a holistic view that looks at your results as a whole.
-            </p>
-            <Button onClick={load}>Generate overview</Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* window selector + generate */}
+      <Card className="mb-6">
+        <CardContent className="flex flex-wrap items-end gap-3 py-4">
+          <div className="space-y-1">
+            <Label htmlFor="win" className="text-xs">Look at the last</Label>
+            <select id="win" value={months ?? "all"}
+              onChange={(e) => setMonths(e.target.value === "all" ? null : Number(e.target.value))}
+              className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+              {WINDOWS.map((w) => <option key={w.label} value={w.months ?? "all"}>{w.label}</option>)}
+            </select>
+          </div>
+          <Button onClick={() => load(months)} disabled={loading}>
+            {loading ? "Synthesizing…" : rec ? "Regenerate" : "Generate overview"}
+          </Button>
+          {rec && !loading && (
+            <span className="text-xs text-muted-foreground">Showing: {generatedWindow}</span>
+          )}
+        </CardContent>
+      </Card>
+
+      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
       {loading && (
         <Card><CardContent className="py-10 text-center text-muted-foreground">
@@ -106,9 +127,7 @@ export default function AdvisorRecommendationsPage() {
         </CardContent></Card>
       )}
 
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-
-      {rec && (
+      {rec && !loading && (
         <div className="space-y-6">
           {rec.suggested_reminders.length > 0 && (
             <Card>
@@ -130,7 +149,9 @@ export default function AdvisorRecommendationsPage() {
             <CardHeader className="pb-2"><CardTitle className="text-base">Overview</CardTitle></CardHeader>
             <CardContent>
               {rec.status === "no_data" || !rec.recommendations ? (
-                <p className="text-sm text-muted-foreground">Not enough results yet for a holistic view.</p>
+                <p className="text-sm text-muted-foreground">
+                  Not enough results in this window for a holistic view. Try a longer window.
+                </p>
               ) : (
                 <div className="prose prose-sm max-w-none prose-headings:mt-4 prose-headings:mb-1 prose-headings:text-base prose-headings:font-semibold prose-p:my-2 prose-p:leading-relaxed prose-li:my-1">
                   <ReactMarkdown>{rec.recommendations}</ReactMarkdown>
@@ -159,13 +180,15 @@ export default function AdvisorRecommendationsPage() {
                   </ol>
                 </div>
               )}
-
-              <div className="mt-4">
-                <Button variant="outline" size="sm" onClick={load} disabled={loading}>Regenerate</Button>
-              </div>
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {!rec && !loading && (
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Choose a window and generate a holistic view of your results.
+        </CardContent></Card>
       )}
     </div>
   );

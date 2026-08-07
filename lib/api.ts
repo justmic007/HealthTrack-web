@@ -336,8 +336,9 @@ export type Recommendation = {
   suggested_reminders: SuggestedReminder[];
 };
 
-export function getRecommendations(): Promise<Recommendation> {
-  return api.get<Recommendation>("/api/v1/advisor/recommendations");
+export function getRecommendations(months?: number | null): Promise<Recommendation> {
+  const q = months != null ? `?months=${months}` : "";
+  return api.get<Recommendation>(`/api/v1/advisor/recommendations${q}`);
 }
 
 // Accept a suggested reminder — patient picks WHEN (due_datetime required).
