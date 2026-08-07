@@ -272,3 +272,51 @@ export function createShare(body: ShareCreate): Promise<Share> {
 export function revokeShare(id: string): Promise<void> {
     return api.del<void>(`/api/v1/sharing/${id}`);
 }
+// ---- profile --------------------------------------------------------------
+export type PatientProfile = {
+  id: string;
+  user_id: string;
+  date_of_birth: string | null;
+  sex: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  genotype: string | null;
+  blood_type: string | null;
+  known_conditions: string[];
+  current_medications: string[];
+  allergies: string[];
+  family_history: string[];
+  smoking_status: string | null;
+  alcohol_use: string | null;
+  dietary_restrictions: string[];
+  activity_level: string | null;
+  lifestyle_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PatientProfileUpdate = Partial<{
+  date_of_birth: string;
+  sex: string;
+  height_cm: number;
+  weight_kg: number;
+  genotype: string;
+  blood_type: string;
+  known_conditions: string[];
+  current_medications: string[];
+  allergies: string[];
+  family_history: string[];
+  smoking_status: string;
+  alcohol_use: string;
+  dietary_restrictions: string[];
+  activity_level: string;
+  lifestyle_notes: string;
+}>;
+
+export function getProfile(): Promise<PatientProfile> {
+  return api.get<PatientProfile>("/api/v1/profile/me");
+}
+
+export function updateProfile(body: PatientProfileUpdate): Promise<PatientProfile> {
+  return api.put<PatientProfile>("/api/v1/profile/me", body);
+}
