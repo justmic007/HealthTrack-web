@@ -349,3 +349,42 @@ export function acceptSuggestedReminder(body: {
 }): Promise<{ id: string; title: string; due_datetime: string }> {
   return api.post("/api/v1/advisor/reminders/accept", body);
 }
+
+// ---- caregiver: results shared with me ------------------------------------
+export type SharedAnalyte = {
+  name: string;
+  result_type: string;
+  value: number | string | null;
+  unit: string | null;
+  reference_range: { low: number | null; high: number | null } | null;
+};
+
+export type SharedResult = {
+  id: string;
+  patient_id: string;
+  title: string;
+  date_taken: string;
+  date_uploaded: string;
+  status: string; // normal | high | low | borderline | ...
+  summary_text: string | null;
+  raw_data: {
+    test_type: string;
+    result_type: string;
+    analytes: SharedAnalyte[];
+  } | null;
+  lab_name: string | null;
+  patient_name: string | null;
+  patient_email: string | null;
+  patient_phone: string | null;
+};
+
+export type SharedPage = {
+  items: SharedResult[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export function listSharedWithMe(limit = 50, offset = 0): Promise<SharedPage> {
+  return api.get<SharedPage>(`/api/v1/sharing/shared-with-me?limit=${limit}&offset=${offset}`);
+}
