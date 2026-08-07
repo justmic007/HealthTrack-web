@@ -178,3 +178,64 @@ export type AnalyteTrend = {
 export function getTrends(): Promise<AnalyteTrend[]> {
     return api.get<AnalyteTrend[]>("/api/v1/test-results/trends");
 }
+
+
+// ---- reminders ------------------------------------------------------------
+export type Reminder = {
+    id: string;
+    test_result_id: string | null;
+    reminder_type: string; // "medication" | "follow_up" | "custom"
+    title: string;
+    description: string | null;
+    due_datetime: string;
+    recurrence_type: string;
+    recurrence_data: unknown | null;
+    is_completed: boolean;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ReminderCreate = {
+    title: string;
+    reminder_type: string;
+    due_datetime: string;
+    description?: string;
+};
+
+export function listReminders(limit = 50, offset = 0, includeCompleted = false): Promise<Page<Reminder>> {
+    const q = `limit=${limit}&offset=${offset}&include_completed=${includeCompleted}`;
+    return api.get<Page<Reminder>>(`/api/v1/reminders?${q}`);
+}
+
+export function createReminder(body: ReminderCreate): Promise<Reminder> {
+    return api.post<Reminder>("/api/v1/reminders", body);
+}
+
+export function completeReminder(id: string): Promise<Reminder> {
+    return api.post<Reminder>(`/api/v1/reminders/${id}/complete`);
+}
+
+export function deleteReminder(id: string): Promise<void> {
+    return api.del<void>(`/api/v1/reminders/${id}`);
+}
+
+// Build the .ics download URL (needs the token appended as a query param OR
+// fetched with auth then blob-downloaded). We fetch with auth and trigger a blob.
+export async function downloadReminderIcs(id: string, title: string): Promise<void> {
+    const token = getToken();
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/api/v1/reminders/${id}/calendar.ics`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    );
+    if (!res.ok) throw new Error("Could not download calendar file");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
