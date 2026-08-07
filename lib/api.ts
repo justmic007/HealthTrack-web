@@ -178,3 +178,174 @@ export type AnalyteTrend = {
 export function getTrends(): Promise<AnalyteTrend[]> {
     return api.get<AnalyteTrend[]>("/api/v1/test-results/trends");
 }
+
+
+// ---- reminders ------------------------------------------------------------
+export type Reminder = {
+    id: string;
+    test_result_id: string | null;
+    reminder_type: string; // "medication" | "follow_up" | "custom"
+    title: string;
+    description: string | null;
+    due_datetime: string;
+    recurrence_type: string;
+    recurrence_data: unknown | null;
+    is_completed: boolean;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ReminderCreate = {
+    title: string;
+    reminder_type: string;
+    due_datetime: string;
+    description?: string;
+};
+
+export function listReminders(limit = 50, offset = 0, includeCompleted = false): Promise<Page<Reminder>> {
+    const q = `limit=${limit}&offset=${offset}&include_completed=${includeCompleted}`;
+    return api.get<Page<Reminder>>(`/api/v1/reminders?${q}`);
+}
+
+export function createReminder(body: ReminderCreate): Promise<Reminder> {
+    return api.post<Reminder>("/api/v1/reminders", body);
+}
+
+export function completeReminder(id: string): Promise<Reminder> {
+    return api.post<Reminder>(`/api/v1/reminders/${id}/complete`);
+}
+
+export function deleteReminder(id: string): Promise<void> {
+    return api.del<void>(`/api/v1/reminders/${id}`);
+}
+
+// Build the .ics download URL (needs the token appended as a query param OR
+// fetched with auth then blob-downloaded). We fetch with auth and trigger a blob.
+export async function downloadReminderIcs(id: string, title: string): Promise<void> {
+    const token = getToken();
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/api/v1/reminders/${id}/calendar.ics`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    );
+    if (!res.ok) throw new Error("Could not download calendar file");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+
+// ---- sharing --------------------------------------------------------------
+export type Share = {
+    id: string;
+    test_result_id: string;
+    patient_id: string;
+    caregiver_id: string;
+    date_shared: string;
+    is_active: boolean;
+    test_result_title: string;
+    caregiver_name: string;
+    caregiver_license_type: string | null;
+    caregiver_license_number: string | null;
+    caregiver_license_verified: boolean;
+};
+
+export type ShareCreate = {
+    test_result_id: string;
+    caregiver_email: string;
+};
+
+export function listMyShares(): Promise<Share[]> {
+    return api.get<Share[]>("/api/v1/sharing/my-shares");
+}
+
+export function createShare(body: ShareCreate): Promise<Share> {
+    return api.post<Share>("/api/v1/sharing", body);
+}
+
+export function revokeShare(id: string): Promise<void> {
+    return api.del<void>(`/api/v1/sharing/${id}`);
+}
+// ---- profile --------------------------------------------------------------
+export type PatientProfile = {
+  id: string;
+  user_id: string;
+  date_of_birth: string | null;
+  sex: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  genotype: string | null;
+  blood_type: string | null;
+  known_conditions: string[];
+  current_medications: string[];
+  allergies: string[];
+  family_history: string[];
+  smoking_status: string | null;
+  alcohol_use: string | null;
+  dietary_restrictions: string[];
+  activity_level: string | null;
+  lifestyle_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PatientProfileUpdate = Partial<{
+  date_of_birth: string;
+  sex: string;
+  height_cm: number;
+  weight_kg: number;
+  genotype: string;
+  blood_type: string;
+  known_conditions: string[];
+  current_medications: string[];
+  allergies: string[];
+  family_history: string[];
+  smoking_status: string;
+  alcohol_use: string;
+  dietary_restrictions: string[];
+  activity_level: string;
+  lifestyle_notes: string;
+}>;
+
+export function getProfile(): Promise<PatientProfile> {
+  return api.get<PatientProfile>("/api/v1/profile/me");
+}
+
+export function updateProfile(body: PatientProfileUpdate): Promise<PatientProfile> {
+  return api.put<PatientProfile>("/api/v1/profile/me", body);
+}
+
+// ---- whole-picture advisor (recommendations) ------------------------------
+export type SuggestedReminder = {
+  analyte: string;
+  flag: string;
+  reason: string;
+  title: string;
+};
+
+export type Recommendation = {
+  status: string; // "ok" | "no_data" | "deferred"
+  recommendations: string | null; // markdown (null only when no_data)
+  citations: Citation[];
+  suggested_reminders: SuggestedReminder[];
+};
+
+export function getRecommendations(months?: number | null): Promise<Recommendation> {
+  const q = months != null ? `?months=${months}` : "";
+  return api.get<Recommendation>(`/api/v1/advisor/recommendations${q}`);
+}
+
+// Accept a suggested reminder — patient picks WHEN (due_datetime required).
+export function acceptSuggestedReminder(body: {
+  title: string;
+  due_datetime: string; // ISO
+  test_result_id?: string;
+}): Promise<{ id: string; title: string; due_datetime: string }> {
+  return api.post("/api/v1/advisor/reminders/accept", body);
+}
