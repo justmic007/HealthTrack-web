@@ -52,7 +52,8 @@ export default function LabDashboard() {
 
       <div className="space-y-3">
         {items?.map((r) => (
-          <Card key={r.id}>
+          <Link key={r.id} href={`/lab/results/${r.id}`} className="block">
+            <Card className="transition-colors hover:bg-muted/40">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base">{r.title}</CardTitle>
@@ -66,7 +67,8 @@ export default function LabDashboard() {
                 {r.file_url && <span className="text-blue-600">has file</span>}
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

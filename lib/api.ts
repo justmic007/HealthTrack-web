@@ -447,3 +447,35 @@ export async function createTestResult(input: {
   }
   return res.json() as Promise<LabResult>;
 }
+
+// ---- lab: extraction (OCR / text-layer) review flow -----------------------
+export type ExtractionJob = {
+  job_id: string;
+  status: string; // queued | running | done | failed (backend enum values)
+  source_path: string | null;
+  extracted_text: string | null;
+  candidate_payload: { test_type?: string; result_type?: string; analytes?: unknown[] } | null;
+  unmatched_analytes: string[];
+  error: string | null;
+};
+
+// Queue extraction of the result's uploaded file. Returns 202 + job info.
+export function requestExtraction(id: string): Promise<{ job_id: string; status: string }> {
+  return api.post<{ job_id: string; status: string }>(`/api/v1/test-results/${id}/extract`, {});
+}
+
+// Latest extraction job for review.
+export function getExtraction(id: string): Promise<ExtractionJob> {
+  return api.get<ExtractionJob>(`/api/v1/test-results/${id}/extraction`);
+}
+
+// Confirm (and optionally correct) the extracted candidate -> becomes raw_data.
+export function confirmExtraction(
+  id: string,
+  raw_data: unknown,
+  status?: string,
+): Promise<LabResult> {
+  const body: { raw_data: unknown; status?: string } = { raw_data };
+  if (status) body.status = status;
+  return api.post<LabResult>(`/api/v1/test-results/${id}/extraction/confirm`, body);
+}
