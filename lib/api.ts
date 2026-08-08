@@ -479,3 +479,63 @@ export function confirmExtraction(
   if (status) body.status = status;
   return api.post<LabResult>(`/api/v1/test-results/${id}/extraction/confirm`, body);
 }
+
+// ---- admin: analytics, lab approvals, user management, caregiver verify ----
+export type SystemAnalytics = {
+  total_test_results: number;
+  test_results_by_status: Record<string, number>;
+  test_results_by_lab: Record<string, number>;
+  monthly_test_trends: Record<string, number>;
+  total_labs: number;
+  active_labs: number;
+  pending_labs: number;
+  total_users: number;
+  users_by_type: Record<string, number>;
+  active_users: number;
+  inactive_users: number;
+  recent_registrations: number;
+  recent_test_uploads: number;
+};
+
+export type AdminLab = {
+  id: string;
+  name: string;
+  clia_number: string;
+  address: string;
+  phone: string | null;
+  email: string;
+  website: string | null;
+  status: string; // pending | approved | rejected | suspended
+  is_active: boolean;
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  user_type: string;
+  is_active: boolean;
+  license_number: string | null;
+  license_type: string | null;
+  license_state: string | null;
+  license_verified: boolean;
+};
+
+export function getAnalytics(): Promise<SystemAnalytics> {
+  return api.get<SystemAnalytics>("/api/v1/auth/admin/analytics");
+}
+export function getPendingLabs(): Promise<AdminLab[]> {
+  return api.get<AdminLab[]>("/api/v1/auth/admin/labs/pending");
+}
+export function updateLabStatus(labId: string, status: string): Promise<AdminLab> {
+  return api.put<AdminLab>(`/api/v1/auth/admin/labs/${labId}/status`, { status });
+}
+export function getInactiveUsers(): Promise<AdminUser[]> {
+  return api.get<AdminUser[]>("/api/v1/auth/admin/users/inactive");
+}
+export function updateUserStatus(userId: string, is_active: boolean): Promise<AdminUser> {
+  return api.put<AdminUser>(`/api/v1/auth/admin/users/${userId}/status`, { is_active });
+}
+export function verifyCaregiverLicense(userId: string): Promise<AdminUser> {
+  return api.put<AdminUser>(`/api/v1/auth/admin/caregivers/${userId}/verify-license`, {});
+}
