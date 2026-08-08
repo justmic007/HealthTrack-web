@@ -17,6 +17,17 @@ export function setToken(token: string): void {
 export function clearToken(): void {
     if (typeof window === "undefined") return;
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+}
+
+const REFRESH_KEY = "healthtrack_refresh";
+export function getRefreshToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(REFRESH_KEY);
+}
+export function setRefreshToken(token: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(REFRESH_KEY, token);
 }
 
 // ---- core request helper --------------------------------------------------
@@ -32,7 +43,36 @@ export class ApiError extends Error {
 
 type RequestOptions = { method?: string; body?: unknown; auth?: boolean };
 
-async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+// Single in-flight refresh shared across concurrent 401s (rotation-safe:
+// the refresh token is one-time-use, so we must not fire two refreshes at once).
+let _refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+    const rt = getRefreshToken();
+    if (!rt) return false;
+    if (_refreshInFlight) return _refreshInFlight;
+    _refreshInFlight = (async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh_token: rt }),
+            });
+            if (!res.ok) return false;
+            const data = await res.json();
+            if (data?.access_token) setToken(data.access_token);
+            if (data?.refresh_token) setRefreshToken(data.refresh_token); // rotation
+            return !!data?.access_token;
+        } catch {
+            return false;
+        } finally {
+            _refreshInFlight = null;
+        }
+    })();
+    return _refreshInFlight;
+}
+
+async function request<T>(path: string, opts: RequestOptions = {}, _retried = false): Promise<T> {
     const { method = "GET", body, auth = true } = opts;
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (auth) {
@@ -44,6 +84,16 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
     });
+
+    // On a 401, try a one-time token refresh, then retry the original request.
+    if (res.status === 401 && auth && !_retried) {
+        const ok = await refreshAccessToken();
+        if (ok) return request<T>(path, opts, true);
+        clearToken();
+        if (typeof window !== "undefined") window.location.href = "/login";
+        throw new ApiError(401, null, "Session expired");
+    }
+
     if (res.status === 204) return undefined as T;
     const text = await res.text();
     const data = text ? JSON.parse(text) : null;
@@ -66,7 +116,7 @@ export const api = {
 };
 
 // ---- typed auth calls -----------------------------------------------------
-export type LoginResponse = { access_token: string; token_type: string };
+export type LoginResponse = { access_token: string; refresh_token: string; token_type: string };
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
     const data = await api.post<LoginResponse>(
@@ -75,6 +125,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
         false,
     );
     setToken(data.access_token);
+    if (data.refresh_token) setRefreshToken(data.refresh_token);
     return data;
 }
 
@@ -274,268 +325,268 @@ export function revokeShare(id: string): Promise<void> {
 }
 // ---- profile --------------------------------------------------------------
 export type PatientProfile = {
-  id: string;
-  user_id: string;
-  date_of_birth: string | null;
-  sex: string | null;
-  height_cm: number | null;
-  weight_kg: number | null;
-  genotype: string | null;
-  blood_type: string | null;
-  known_conditions: string[];
-  current_medications: string[];
-  allergies: string[];
-  family_history: string[];
-  smoking_status: string | null;
-  alcohol_use: string | null;
-  dietary_restrictions: string[];
-  activity_level: string | null;
-  lifestyle_notes: string | null;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    user_id: string;
+    date_of_birth: string | null;
+    sex: string | null;
+    height_cm: number | null;
+    weight_kg: number | null;
+    genotype: string | null;
+    blood_type: string | null;
+    known_conditions: string[];
+    current_medications: string[];
+    allergies: string[];
+    family_history: string[];
+    smoking_status: string | null;
+    alcohol_use: string | null;
+    dietary_restrictions: string[];
+    activity_level: string | null;
+    lifestyle_notes: string | null;
+    created_at: string;
+    updated_at: string;
 };
 
 export type PatientProfileUpdate = Partial<{
-  date_of_birth: string;
-  sex: string;
-  height_cm: number;
-  weight_kg: number;
-  genotype: string;
-  blood_type: string;
-  known_conditions: string[];
-  current_medications: string[];
-  allergies: string[];
-  family_history: string[];
-  smoking_status: string;
-  alcohol_use: string;
-  dietary_restrictions: string[];
-  activity_level: string;
-  lifestyle_notes: string;
+    date_of_birth: string;
+    sex: string;
+    height_cm: number;
+    weight_kg: number;
+    genotype: string;
+    blood_type: string;
+    known_conditions: string[];
+    current_medications: string[];
+    allergies: string[];
+    family_history: string[];
+    smoking_status: string;
+    alcohol_use: string;
+    dietary_restrictions: string[];
+    activity_level: string;
+    lifestyle_notes: string;
 }>;
 
 export function getProfile(): Promise<PatientProfile> {
-  return api.get<PatientProfile>("/api/v1/profile/me");
+    return api.get<PatientProfile>("/api/v1/profile/me");
 }
 
 export function updateProfile(body: PatientProfileUpdate): Promise<PatientProfile> {
-  return api.put<PatientProfile>("/api/v1/profile/me", body);
+    return api.put<PatientProfile>("/api/v1/profile/me", body);
 }
 
 // ---- whole-picture advisor (recommendations) ------------------------------
 export type SuggestedReminder = {
-  analyte: string;
-  flag: string;
-  reason: string;
-  title: string;
+    analyte: string;
+    flag: string;
+    reason: string;
+    title: string;
 };
 
 export type Recommendation = {
-  status: string; // "ok" | "no_data" | "deferred"
-  recommendations: string | null; // markdown (null only when no_data)
-  citations: Citation[];
-  suggested_reminders: SuggestedReminder[];
+    status: string; // "ok" | "no_data" | "deferred"
+    recommendations: string | null; // markdown (null only when no_data)
+    citations: Citation[];
+    suggested_reminders: SuggestedReminder[];
 };
 
 export function getRecommendations(months?: number | null): Promise<Recommendation> {
-  const q = months != null ? `?months=${months}` : "";
-  return api.get<Recommendation>(`/api/v1/advisor/recommendations${q}`);
+    const q = months != null ? `?months=${months}` : "";
+    return api.get<Recommendation>(`/api/v1/advisor/recommendations${q}`);
 }
 
 // Accept a suggested reminder — patient picks WHEN (due_datetime required).
 export function acceptSuggestedReminder(body: {
-  title: string;
-  due_datetime: string; // ISO
-  test_result_id?: string;
+    title: string;
+    due_datetime: string; // ISO
+    test_result_id?: string;
 }): Promise<{ id: string; title: string; due_datetime: string }> {
-  return api.post("/api/v1/advisor/reminders/accept", body);
+    return api.post("/api/v1/advisor/reminders/accept", body);
 }
 
 // ---- caregiver: results shared with me ------------------------------------
 export type SharedAnalyte = {
-  name: string;
-  result_type: string;
-  value: number | string | null;
-  unit: string | null;
-  reference_range: { low: number | null; high: number | null } | null;
+    name: string;
+    result_type: string;
+    value: number | string | null;
+    unit: string | null;
+    reference_range: { low: number | null; high: number | null } | null;
 };
 
 export type SharedResult = {
-  id: string;
-  patient_id: string;
-  title: string;
-  date_taken: string;
-  date_uploaded: string;
-  status: string; // normal | high | low | borderline | ...
-  summary_text: string | null;
-  raw_data: {
-    test_type: string;
-    result_type: string;
-    analytes: SharedAnalyte[];
-  } | null;
-  lab_name: string | null;
-  patient_name: string | null;
-  patient_email: string | null;
-  patient_phone: string | null;
+    id: string;
+    patient_id: string;
+    title: string;
+    date_taken: string;
+    date_uploaded: string;
+    status: string; // normal | high | low | borderline | ...
+    summary_text: string | null;
+    raw_data: {
+        test_type: string;
+        result_type: string;
+        analytes: SharedAnalyte[];
+    } | null;
+    lab_name: string | null;
+    patient_name: string | null;
+    patient_email: string | null;
+    patient_phone: string | null;
 };
 
 export type SharedPage = {
-  items: SharedResult[];
-  total: number;
-  limit: number;
-  offset: number;
+    items: SharedResult[];
+    total: number;
+    limit: number;
+    offset: number;
 };
 
 export function listSharedWithMe(limit = 50, offset = 0): Promise<SharedPage> {
-  return api.get<SharedPage>(`/api/v1/sharing/shared-with-me?limit=${limit}&offset=${offset}`);
+    return api.get<SharedPage>(`/api/v1/sharing/shared-with-me?limit=${limit}&offset=${offset}`);
 }
 
 // ---- lab: create results, draft summaries, list lab results ---------------
 export type LabResult = {
-  id: string;
-  patient_id: string | null;
-  title: string;
-  date_taken: string;
-  date_uploaded: string;
-  status: string;
-  summary_text: string | null;
-  raw_data: { test_type?: string; result_type?: string; analytes?: unknown[] } | null;
-  patient_name: string | null;
-  patient_email: string | null;
-  lab_name: string | null;
-  file_url: string | null;
+    id: string;
+    patient_id: string | null;
+    title: string;
+    date_taken: string;
+    date_uploaded: string;
+    status: string;
+    summary_text: string | null;
+    raw_data: { test_type?: string; result_type?: string; analytes?: unknown[] } | null;
+    patient_name: string | null;
+    patient_email: string | null;
+    lab_name: string | null;
+    file_url: string | null;
 };
 
 export function listLabResults(limit = 50, offset = 0): Promise<Page<LabResult>> {
-  return api.get<Page<LabResult>>(`/api/v1/test-results?limit=${limit}&offset=${offset}`);
+    return api.get<Page<LabResult>>(`/api/v1/test-results?limit=${limit}&offset=${offset}`);
 }
 
 // Ask the backend to draft a plain-language summary from raw_data (stateless).
 export function draftSummary(body: { patient_email: string; raw_data: unknown }): Promise<{ draft: string }> {
-  return api.post<{ draft: string }>("/api/v1/test-results/draft-summary", body);
+    return api.post<{ draft: string }>("/api/v1/test-results/draft-summary", body);
 }
 
 // Create a test result. Uses multipart/form-data (optional file). raw_data is
 // JSON-stringified into a form field, matching TestResultCreateForm.
 export async function createTestResult(input: {
-  patient_email: string;
-  title: string;
-  date_taken: string;   // ISO
-  status: string;       // normal | borderline | abnormal
-  summary_text: string;
-  raw_data?: unknown;   // will be JSON.stringify'd
-  file?: File | null;
+    patient_email: string;
+    title: string;
+    date_taken: string;   // ISO
+    status: string;       // normal | borderline | abnormal
+    summary_text: string;
+    raw_data?: unknown;   // will be JSON.stringify'd
+    file?: File | null;
 }): Promise<LabResult> {
-  const fd = new FormData();
-  fd.append("patient_email", input.patient_email);
-  fd.append("title", input.title);
-  fd.append("date_taken", input.date_taken);
-  fd.append("status", input.status);
-  fd.append("summary_text", input.summary_text);
-  if (input.raw_data != null) fd.append("raw_data", JSON.stringify(input.raw_data));
-  if (input.file) fd.append("file", input.file);
+    const fd = new FormData();
+    fd.append("patient_email", input.patient_email);
+    fd.append("title", input.title);
+    fd.append("date_taken", input.date_taken);
+    fd.append("status", input.status);
+    fd.append("summary_text", input.summary_text);
+    if (input.raw_data != null) fd.append("raw_data", JSON.stringify(input.raw_data));
+    if (input.file) fd.append("file", input.file);
 
-  const token = getToken();
-  const res = await fetch(`${BASE_URL}/api/v1/test-results`, {
-    method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: fd, // do NOT set Content-Type; the browser sets the multipart boundary
-  });
-  if (!res.ok) {
-    let detail = `Request failed (${res.status})`;
-    try { const j = await res.json(); detail = (j as { detail?: string }).detail ?? detail; } catch {}
-    throw new ApiError(res.status, detail);
-  }
-  return res.json() as Promise<LabResult>;
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/v1/test-results`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd, // do NOT set Content-Type; the browser sets the multipart boundary
+    });
+    if (!res.ok) {
+        let detail = `Request failed (${res.status})`;
+        try { const j = await res.json(); detail = (j as { detail?: string }).detail ?? detail; } catch { }
+        throw new ApiError(res.status, detail);
+    }
+    return res.json() as Promise<LabResult>;
 }
 
 // ---- lab: extraction (OCR / text-layer) review flow -----------------------
 export type ExtractionJob = {
-  job_id: string;
-  status: string; // queued | running | done | failed (backend enum values)
-  source_path: string | null;
-  extracted_text: string | null;
-  candidate_payload: { test_type?: string; result_type?: string; analytes?: unknown[] } | null;
-  unmatched_analytes: string[];
-  error: string | null;
+    job_id: string;
+    status: string; // queued | running | done | failed (backend enum values)
+    source_path: string | null;
+    extracted_text: string | null;
+    candidate_payload: { test_type?: string; result_type?: string; analytes?: unknown[] } | null;
+    unmatched_analytes: string[];
+    error: string | null;
 };
 
 // Queue extraction of the result's uploaded file. Returns 202 + job info.
 export function requestExtraction(id: string): Promise<{ job_id: string; status: string }> {
-  return api.post<{ job_id: string; status: string }>(`/api/v1/test-results/${id}/extract`, {});
+    return api.post<{ job_id: string; status: string }>(`/api/v1/test-results/${id}/extract`, {});
 }
 
 // Latest extraction job for review.
 export function getExtraction(id: string): Promise<ExtractionJob> {
-  return api.get<ExtractionJob>(`/api/v1/test-results/${id}/extraction`);
+    return api.get<ExtractionJob>(`/api/v1/test-results/${id}/extraction`);
 }
 
 // Confirm (and optionally correct) the extracted candidate -> becomes raw_data.
 export function confirmExtraction(
-  id: string,
-  raw_data: unknown,
-  status?: string,
+    id: string,
+    raw_data: unknown,
+    status?: string,
 ): Promise<LabResult> {
-  const body: { raw_data: unknown; status?: string } = { raw_data };
-  if (status) body.status = status;
-  return api.post<LabResult>(`/api/v1/test-results/${id}/extraction/confirm`, body);
+    const body: { raw_data: unknown; status?: string } = { raw_data };
+    if (status) body.status = status;
+    return api.post<LabResult>(`/api/v1/test-results/${id}/extraction/confirm`, body);
 }
 
 // ---- admin: analytics, lab approvals, user management, caregiver verify ----
 export type SystemAnalytics = {
-  total_test_results: number;
-  test_results_by_status: Record<string, number>;
-  test_results_by_lab: Record<string, number>;
-  monthly_test_trends: Record<string, number>;
-  total_labs: number;
-  active_labs: number;
-  pending_labs: number;
-  total_users: number;
-  users_by_type: Record<string, number>;
-  active_users: number;
-  inactive_users: number;
-  recent_registrations: number;
-  recent_test_uploads: number;
+    total_test_results: number;
+    test_results_by_status: Record<string, number>;
+    test_results_by_lab: Record<string, number>;
+    monthly_test_trends: Record<string, number>;
+    total_labs: number;
+    active_labs: number;
+    pending_labs: number;
+    total_users: number;
+    users_by_type: Record<string, number>;
+    active_users: number;
+    inactive_users: number;
+    recent_registrations: number;
+    recent_test_uploads: number;
 };
 
 export type AdminLab = {
-  id: string;
-  name: string;
-  clia_number: string;
-  address: string;
-  phone: string | null;
-  email: string;
-  website: string | null;
-  status: string; // pending | approved | rejected | suspended
-  is_active: boolean;
+    id: string;
+    name: string;
+    clia_number: string;
+    address: string;
+    phone: string | null;
+    email: string;
+    website: string | null;
+    status: string; // pending | approved | rejected | suspended
+    is_active: boolean;
 };
 
 export type AdminUser = {
-  id: string;
-  email: string;
-  full_name: string;
-  user_type: string;
-  is_active: boolean;
-  license_number: string | null;
-  license_type: string | null;
-  license_state: string | null;
-  license_verified: boolean;
+    id: string;
+    email: string;
+    full_name: string;
+    user_type: string;
+    is_active: boolean;
+    license_number: string | null;
+    license_type: string | null;
+    license_state: string | null;
+    license_verified: boolean;
 };
 
 export function getAnalytics(): Promise<SystemAnalytics> {
-  return api.get<SystemAnalytics>("/api/v1/auth/admin/analytics");
+    return api.get<SystemAnalytics>("/api/v1/auth/admin/analytics");
 }
 export function getPendingLabs(): Promise<AdminLab[]> {
-  return api.get<AdminLab[]>("/api/v1/auth/admin/labs/pending");
+    return api.get<AdminLab[]>("/api/v1/auth/admin/labs/pending");
 }
 export function updateLabStatus(labId: string, status: string): Promise<AdminLab> {
-  return api.put<AdminLab>(`/api/v1/auth/admin/labs/${labId}/status`, { status });
+    return api.put<AdminLab>(`/api/v1/auth/admin/labs/${labId}/status`, { status });
 }
 export function getInactiveUsers(): Promise<AdminUser[]> {
-  return api.get<AdminUser[]>("/api/v1/auth/admin/users/inactive");
+    return api.get<AdminUser[]>("/api/v1/auth/admin/users/inactive");
 }
 export function updateUserStatus(userId: string, is_active: boolean): Promise<AdminUser> {
-  return api.put<AdminUser>(`/api/v1/auth/admin/users/${userId}/status`, { is_active });
+    return api.put<AdminUser>(`/api/v1/auth/admin/users/${userId}/status`, { is_active });
 }
 export function verifyCaregiverLicense(userId: string): Promise<AdminUser> {
-  return api.put<AdminUser>(`/api/v1/auth/admin/caregivers/${userId}/verify-license`, {});
+    return api.put<AdminUser>(`/api/v1/auth/admin/caregivers/${userId}/verify-license`, {});
 }
