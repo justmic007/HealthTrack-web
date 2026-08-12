@@ -494,7 +494,7 @@ export async function createTestResult(input: {
     if (!res.ok) {
         let detail = `Request failed (${res.status})`;
         try { const j = await res.json(); detail = (j as { detail?: string }).detail ?? detail; } catch { }
-        throw new ApiError(res.status, detail);
+        throw new ApiError(res.status, detail, detail);
     }
     return res.json() as Promise<LabResult>;
 }
@@ -525,10 +525,10 @@ export function confirmExtraction(
     id: string,
     raw_data: unknown,
     status?: string,
-): Promise<LabResult> {
+): Promise<TestResult> {
     const body: { raw_data: unknown; status?: string } = { raw_data };
     if (status) body.status = status;
-    return api.post<LabResult>(`/api/v1/test-results/${id}/extraction/confirm`, body);
+    return api.post<TestResult>(`/api/v1/test-results/${id}/extraction/confirm`, body);
 }
 
 // ---- admin: analytics, lab approvals, user management, caregiver verify ----
