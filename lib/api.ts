@@ -590,3 +590,34 @@ export function updateUserStatus(userId: string, is_active: boolean): Promise<Ad
 export function verifyCaregiverLicense(userId: string): Promise<AdminUser> {
     return api.put<AdminUser>(`/api/v1/auth/admin/caregivers/${userId}/verify-license`, {});
 }
+
+// ---- registration + password reset ----------------------------------------
+export type PatientSignup = {
+  email: string;
+  password: string;
+  full_name: string;
+  phone_number?: string;
+};
+export type CaregiverSignup = PatientSignup & {
+  license_number: string;
+  license_type: string;  // MD, RN, NP, PA, ...
+  license_state: string; // two-letter code
+};
+
+export function registerPatient(input: PatientSignup): Promise<CurrentUser> {
+  return api.post<CurrentUser>("/api/v1/auth/register/patient", input, false);
+}
+export function registerCaregiver(input: CaregiverSignup): Promise<CurrentUser> {
+  return api.post<CurrentUser>("/api/v1/auth/register/caregiver", input, false);
+}
+export function requestPasswordReset(email: string): Promise<{ detail: string }> {
+  return api.post<{ detail: string }>("/api/v1/auth/password-reset/request", { email }, false);
+}
+export function confirmPasswordReset(token: string, new_password: string): Promise<{ detail: string }> {
+  return api.post<{ detail: string }>("/api/v1/auth/password-reset/confirm", { token, new_password }, false);
+}
+
+// Caregivers whose license the admin hasn't verified yet (active but unverified).
+export function getPendingCaregivers(): Promise<AdminUser[]> {
+  return api.get<AdminUser[]>("/api/v1/auth/admin/caregivers/pending");
+}
