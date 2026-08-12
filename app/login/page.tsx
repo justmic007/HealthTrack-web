@@ -55,6 +55,9 @@ export default function LoginPage() {
               value={password} onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               autoComplete="current-password" />
+            <p className="text-right text-sm">
+              <a href="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</a>
+            </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
