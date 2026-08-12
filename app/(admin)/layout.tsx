@@ -15,7 +15,7 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <RequireRole role="admin">
       <div className="min-h-screen">
@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">{user?.full_name ?? "Admin"}</span>
-              <Button variant="outline" size="sm" onClick={signOut}>Sign out</Button>
+              <Button variant="outline" size="sm" onClick={logout}>Sign out</Button>
             </div>
           </div>
         </header>
