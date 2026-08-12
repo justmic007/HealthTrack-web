@@ -131,7 +131,7 @@ export default function LabResultDetail() {
         <div>
           <h1 className="text-2xl font-semibold">{result.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {result.patient_name ?? result.patient_email} · {new Date(result.date_taken).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+            {result.patient_name ?? "Unknown patient"} · {new Date(result.date_taken).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
         <StatusBadge status={result.status} />
