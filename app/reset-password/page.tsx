@@ -22,7 +22,6 @@ function ResetInner() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
-  // When the token came from the emailed link, it's plumbing — don't show it.
   const hasUrlToken = tokenFromUrl.length > 0;
 
   async function onSubmit() {
@@ -42,9 +41,9 @@ function ResetInner() {
 
   if (done) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Password reset</CardTitle>
+      <Card className="w-full max-w-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">HealthTrack</CardTitle>
           <CardDescription>Your password has been changed. Please sign in again.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -55,17 +54,16 @@ function ResetInner() {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Choose a new password</CardTitle>
+    <Card className="w-full max-w-sm">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">HealthTrack</CardTitle>
         <CardDescription>
-          {hasUrlToken ? "Enter your new password below." : "Enter your reset token and a new password."}
+          {hasUrlToken ? "Choose a new password." : "Enter your reset token and a new password."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
-        {/* token field only when there's no token in the URL (manual fallback) */}
         {!hasUrlToken && (
           <div className="space-y-2">
             <Label htmlFor="token">Reset token</Label>
@@ -91,7 +89,7 @@ function ResetInner() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-md items-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
         <ResetInner />
       </Suspense>

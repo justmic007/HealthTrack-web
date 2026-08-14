@@ -33,7 +33,6 @@ function VerifyInner() {
     }
   }, []);
 
-  // auto-confirm once if a token was supplied in the URL
   useEffect(() => {
     const t = params.get("token");
     if (t) confirm(t);
@@ -42,10 +41,10 @@ function VerifyInner() {
 
   if (state === "verifying") {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Verifying your email…</CardTitle>
-          <CardDescription>One moment.</CardDescription>
+      <Card className="w-full max-w-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">HealthTrack</CardTitle>
+          <CardDescription>Verifying your email…</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -53,9 +52,9 @@ function VerifyInner() {
 
   if (state === "done") {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Email verified</CardTitle>
+      <Card className="w-full max-w-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">HealthTrack</CardTitle>
           <CardDescription>Your email address is now confirmed. Thank you.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -65,11 +64,10 @@ function VerifyInner() {
     );
   }
 
-  // idle (no token in URL) or error — allow manual paste + retry
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Verify your email</CardTitle>
+    <Card className="w-full max-w-sm">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">HealthTrack</CardTitle>
         <CardDescription>Enter the verification token from your email.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -89,7 +87,7 @@ function VerifyInner() {
 
 export default function VerifyEmailPage() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-md items-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
         <VerifyInner />
       </Suspense>
