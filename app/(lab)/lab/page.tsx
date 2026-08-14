@@ -64,7 +64,7 @@ export default function LabDashboard() {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="text-foreground font-medium">{r.patient_name ?? r.patient_email ?? "Unknown patient"}</span>
                 <span>{new Date(r.date_taken).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>
-                {r.file_url && <span className="text-blue-600">has file</span>}
+                {r.file_url && <span className="text-primary">has file</span>}
               </div>
             </CardContent>
             </Card>

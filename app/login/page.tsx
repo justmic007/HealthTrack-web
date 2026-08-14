@@ -56,7 +56,7 @@ export default function LoginPage() {
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               autoComplete="current-password" />
             <p className="text-right text-sm">
-              <a href="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</a>
+              <a href="/forgot-password" className="text-primary hover:underline">Forgot password?</a>
             </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -65,7 +65,7 @@ export default function LoginPage() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             No account?{" "}
-            <a href="/register" className="text-blue-600 hover:underline">Create one</a>
+            <a href="/register" className="text-primary hover:underline">Create one</a>
           </p>
         </CardContent>
       </Card>

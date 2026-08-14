@@ -139,7 +139,7 @@ export default function AdvisorRecommendationsPage() {
                 {rec.suggested_reminders.map((s, i) => <SuggestedRow key={i} s={s} />)}
                 <p className="pt-1 text-xs text-muted-foreground">
                   Added reminders appear on your{" "}
-                  <Link href="/reminders" className="text-blue-600 hover:underline">Reminders</Link> page.
+                  <Link href="/reminders" className="text-primary hover:underline">Reminders</Link> page.
                 </p>
               </CardContent>
             </Card>
@@ -169,7 +169,7 @@ export default function AdvisorRecommendationsPage() {
                           <span className="text-muted-foreground">[{i + 1}]</span>{" "}
                           {ok ? (
                             <a href={c.source_url} target="_blank" rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline">{c.title}</a>
+                              className="text-primary hover:underline">{c.title}</a>
                           ) : <span>{c.title}</span>}
                           {c.source && c.source !== "unknown" && (
                             <span className="text-muted-foreground"> — {c.source}</span>

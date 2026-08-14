@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
                 If that email is registered, a reset link has been sent. Check your inbox.
               </p>
               <p className="text-center text-sm">
-                <Link href="/login" className="text-blue-600 hover:underline">Back to sign in</Link>
+                <Link href="/login" className="text-primary hover:underline">Back to sign in</Link>
               </p>
             </>
           ) : (
@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
                 {busy ? "Sending…" : "Send reset link"}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                Remembered it? <Link href="/login" className="text-blue-600 hover:underline">Sign in</Link>
+                Remembered it? <Link href="/login" className="text-primary hover:underline">Sign in</Link>
               </p>
             </>
           )}

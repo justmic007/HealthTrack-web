@@ -192,7 +192,7 @@ export default function ResultDetailPage() {
                                                                     href={c.source_url}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="text-blue-600 hover:underline"
+                                                                    className="text-primary hover:underline"
                                                                 >
                                                                     {c.title}
                                                                 </a>

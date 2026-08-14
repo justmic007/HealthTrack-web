@@ -44,7 +44,7 @@ export default function PatientDashboard() {
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-base">Recent results</CardTitle>
-                            <Link href="/results" className="text-sm text-blue-600 hover:underline">View all</Link>
+                            <Link href="/results" className="text-sm text-primary hover:underline">View all</Link>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -65,7 +65,7 @@ export default function PatientDashboard() {
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-base">Trends</CardTitle>
-                            <Link href="/trends" className="text-sm text-blue-600 hover:underline">View all</Link>
+                            <Link href="/trends" className="text-sm text-primary hover:underline">View all</Link>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
