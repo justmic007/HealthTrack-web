@@ -125,7 +125,7 @@ export default function LabResultDetail() {
 
   return (
     <div className="mx-auto max-w-3xl p-4 sm:p-8">
-      <Link href="/lab" className="mb-4 inline-block text-sm text-blue-600 hover:underline">← Lab results</Link>
+      <Link href="/lab" className="mb-4 inline-block text-sm text-primary hover:underline">← Lab results</Link>
 
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>

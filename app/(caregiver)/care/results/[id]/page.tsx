@@ -56,7 +56,7 @@ export default function CaregiverResultDetail() {
   if (notFound) return (
     <div className="mx-auto max-w-3xl p-8">
       <p className="text-sm text-muted-foreground">This result isn&apos;t shared with you (or the share was revoked).</p>
-      <Link href="/care" className="mt-3 inline-block text-sm text-blue-600 hover:underline">← Back to shared results</Link>
+      <Link href="/care" className="mt-3 inline-block text-sm text-primary hover:underline">← Back to shared results</Link>
     </div>
   );
   if (!result) return <div className="mx-auto max-w-3xl p-8 text-muted-foreground">Loading…</div>;
@@ -65,7 +65,7 @@ export default function CaregiverResultDetail() {
 
   return (
     <div className="mx-auto max-w-3xl p-4 sm:p-8">
-      <Link href="/care" className="mb-4 inline-block text-sm text-blue-600 hover:underline">← Shared with me</Link>
+      <Link href="/care" className="mb-4 inline-block text-sm text-primary hover:underline">← Shared with me</Link>
 
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>

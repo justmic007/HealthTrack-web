@@ -71,7 +71,7 @@ function ResetInner() {
           {busy ? "Resetting…" : "Reset password"}
         </Button>
         <p className="text-center text-sm">
-          <Link href="/login" className="text-blue-600 hover:underline">Back to sign in</Link>
+          <Link href="/login" className="text-primary hover:underline">Back to sign in</Link>
         </p>
       </CardContent>
     </Card>
