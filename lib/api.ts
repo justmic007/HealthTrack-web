@@ -621,3 +621,17 @@ export function confirmPasswordReset(token: string, new_password: string): Promi
 export function getPendingCaregivers(): Promise<AdminUser[]> {
   return api.get<AdminUser[]>("/api/v1/auth/admin/caregivers/pending");
 }
+
+
+// ---- admin console: full directories (all labs / all users) ----------------
+export function getAllLabs(status?: string): Promise<AdminLab[]> {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return api.get<AdminLab[]>(`/api/v1/auth/admin/labs${q}`);
+}
+export function getAllUsers(userType?: string, isActive?: boolean): Promise<AdminUser[]> {
+  const params = new URLSearchParams();
+  if (userType) params.set("user_type", userType);
+  if (isActive !== undefined) params.set("is_active", String(isActive));
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return api.get<AdminUser[]>(`/api/v1/auth/admin/users${q}`);
+}
