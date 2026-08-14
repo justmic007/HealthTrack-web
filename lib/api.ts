@@ -635,3 +635,8 @@ export function getAllUsers(userType?: string, isActive?: boolean): Promise<Admi
   const q = params.toString() ? `?${params.toString()}` : "";
   return api.get<AdminUser[]>(`/api/v1/auth/admin/users${q}`);
 }
+
+// ---- email verification confirm --------------------------------------------
+export function confirmEmailVerification(token: string): Promise<{ detail: string }> {
+  return api.post<{ detail: string }>("/api/v1/auth/verify-email/confirm", { token }, false);
+}
