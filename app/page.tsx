@@ -244,13 +244,12 @@ export default function Landing() {
             <div className="flex items-center gap-2 font-semibold tracking-tight">
               <span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden />
               HealthTrack
+              <span className="ml-1 font-mono text-xs font-normal text-muted-foreground">
+                · Synthetic data only · non-diagnostic
+              </span>
             </div>
-            <p className="mt-2 font-mono text-xs text-muted-foreground">
-              Portfolio project · synthetic data only · non-diagnostic
-            </p>
           </div>
           <div className="text-sm text-muted-foreground">
-            Built by Micah Oghale Joel ·{" "}
             <a
               href="https://github.com/justmic007/HealthTrack-web"
               target="_blank"
