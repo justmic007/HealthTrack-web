@@ -25,7 +25,7 @@ function Flag({ tone, children }: { tone: "normal" | "borderline" | "abnormal"; 
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-3 font-mono text-xs uppercase tracking-[0.22em] text-primary">{children}</p>
+    <p className="mb-3 font-mono text-xs uppercase tracking-[0.12em] text-primary sm:tracking-[0.22em]">{children}</p>
   );
 }
 
@@ -240,14 +240,12 @@ export default function Landing() {
       {/* ---- footer ---- */}
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-6 py-10 sm:flex-row sm:items-center">
-          <div>
-            <div className="flex items-center gap-2 font-semibold tracking-tight">
-              <span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden />
-              HealthTrack
-              <span className="ml-1 font-mono text-xs font-normal text-muted-foreground">
-                · Synthetic data only · non-diagnostic
-              </span>
-            </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold tracking-tight">
+            <span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden />
+            <span>HealthTrack</span>
+            <span className="font-mono text-xs font-normal text-muted-foreground">
+              Synthetic data only · non-diagnostic
+            </span>
           </div>
           <div className="text-sm text-muted-foreground">
             <a
