@@ -1,10 +1,11 @@
 // app/verify-email/page.tsx — confirm an email address with a token.
-// The token arrives via the emailed link (?token=...). Unlike reset, there's no
-// user input — we confirm automatically on load and show the outcome. A manual
-// paste + retry is offered if the token is missing or the auto-confirm fails.
+// The token arrives via the emailed link (?token=...). We auto-confirm ONCE on
+// load (guarded against React Strict Mode's double-effect, and against the
+// single-use token being retried). Manual paste is offered only when there's no
+// token in the URL.
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { confirmEmailVerification, ApiError } from "@/lib/api";
@@ -17,9 +18,11 @@ type State = "idle" | "verifying" | "done" | "error";
 
 function VerifyInner() {
   const params = useSearchParams();
-  const [token, setToken] = useState(params.get("token") ?? "");
-  const [state, setState] = useState<State>("idle");
+  const urlToken = params.get("token") ?? "";
+  const [token, setToken] = useState(urlToken);
+  const [state, setState] = useState<State>(urlToken ? "verifying" : "idle");
   const [error, setError] = useState<string | null>(null);
+  const attempted = useRef(false); // guard: confirm the URL token at most once
 
   const confirm = useCallback(async (t: string) => {
     if (!t.trim()) { setError("A verification token is required."); setState("error"); return; }
@@ -33,9 +36,12 @@ function VerifyInner() {
     }
   }, []);
 
+  // auto-confirm the URL token exactly once (survives Strict Mode double-mount)
   useEffect(() => {
-    const t = params.get("token");
-    if (t) confirm(t);
+    if (urlToken && !attempted.current) {
+      attempted.current = true;
+      confirm(urlToken);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -64,19 +70,28 @@ function VerifyInner() {
     );
   }
 
+  // idle (no token in URL) or error — manual paste + retry
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">HealthTrack</CardTitle>
-        <CardDescription>Enter the verification token from your email.</CardDescription>
+        <CardDescription>
+          {urlToken
+            ? "We couldn't verify that link. It may have already been used — try signing in."
+            : "Enter the verification token from your email."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-        <div className="space-y-2">
-          <Label htmlFor="token">Verification token</Label>
-          <Input id="token" value={token} onChange={(e) => setToken(e.target.value)} placeholder="From your verification email" />
-        </div>
-        <Button onClick={() => confirm(token)} className="w-full">Verify email</Button>
+        {error && !urlToken && (
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+        )}
+        {!urlToken && (
+          <div className="space-y-2">
+            <Label htmlFor="token">Verification token</Label>
+            <Input id="token" value={token} onChange={(e) => setToken(e.target.value)} placeholder="From your verification email" />
+            <Button onClick={() => confirm(token)} className="w-full">Verify email</Button>
+          </div>
+        )}
         <p className="text-center text-sm">
           <Link href="/login" className="text-primary hover:underline">Back to sign in</Link>
         </p>
