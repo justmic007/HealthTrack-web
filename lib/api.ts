@@ -640,3 +640,8 @@ export function getAllUsers(userType?: string, isActive?: boolean): Promise<Admi
 export function confirmEmailVerification(token: string): Promise<{ detail: string }> {
   return api.post<{ detail: string }>("/api/v1/auth/verify-email/confirm", { token }, false);
 }
+
+// ---- resend email verification (unauthenticated) ---------------------------
+export function resendVerification(email: string): Promise<{ detail: string }> {
+  return api.post<{ detail: string }>("/api/v1/auth/verify-email/resend", { email }, false);
+}

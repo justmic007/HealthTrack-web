@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerPatient, registerCaregiver, ApiError } from "@/lib/api";
+import { registerPatient, registerCaregiver, resendVerification, ApiError } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [resent, setResent] = useState(false);
 
   function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -71,17 +72,30 @@ export default function RegisterPage() {
 
   if (done) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md items-center p-4">
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Account created</CardTitle>
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Check your email</CardTitle>
             <CardDescription>
+              We sent a verification link to <span className="font-medium text-foreground">{form.email.trim()}</span>.
               {role === "caregiver"
-                ? "Your caregiver account was created. A verification email has been sent, and your professional license will be reviewed by an administrator before full access."
-                : "Your account was created. A verification email has been sent. You can sign in now."}
+                ? " Click it to verify your email. An administrator will then review your professional license before full access."
+                : " Click it to activate your account, then sign in."}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {resent ? (
+              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                If that account needs verification, a new link has been sent.
+              </p>
+            ) : (
+              <Button variant="outline" className="w-full" onClick={async () => {
+                try { await resendVerification(form.email.trim()); } catch {}
+                setResent(true);
+              }}>
+                Resend verification email
+              </Button>
+            )}
             <Button onClick={() => router.push("/login")} className="w-full">Go to sign in</Button>
           </CardContent>
         </Card>
