@@ -645,3 +645,20 @@ export function confirmEmailVerification(token: string): Promise<{ detail: strin
 export function resendVerification(email: string): Promise<{ detail: string }> {
   return api.post<{ detail: string }>("/api/v1/auth/verify-email/resend", { email }, false);
 }
+
+// ---- lab registration (facility + first lab user; awaits admin approval) ----
+export interface LabRegistrationInput {
+  lab_name: string;
+  clia_number: string;
+  address: string;
+  phone?: string;
+  lab_email: string;
+  website?: string;
+  user_name: string;
+  user_email: string;
+  password: string;
+}
+
+export function registerLab(input: LabRegistrationInput): Promise<{ message: string; lab: { id: string; name: string; status: string }; user: { id: string; email: string; full_name: string } }> {
+  return api.post("/api/v1/auth/register/lab", input, false);
+}

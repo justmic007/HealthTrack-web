@@ -169,6 +169,9 @@ export default function RegisterPage() {
           <p className="text-center text-sm text-muted-foreground">
             Already have an account? <Link href="/login" className="text-primary hover:underline">Sign in</Link>
           </p>
+          <p className="text-center text-sm text-muted-foreground">
+            Registering a lab facility? <Link href="/register/lab" className="text-primary hover:underline">Lab signup</Link>
+          </p>
         </CardContent>
       </Card>
     </div>
