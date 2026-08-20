@@ -139,6 +139,8 @@ export type CurrentUser = {
     license_type: string | null;
     license_state: string | null;
     license_verified: boolean;
+    lab_id: string | null;
+    lab_status: string | null; // "pending" | "approved" | "rejected" | "suspended" | null
 };
 
 export function getMe(): Promise<CurrentUser> {
@@ -661,4 +663,51 @@ export interface LabRegistrationInput {
 
 export function registerLab(input: LabRegistrationInput): Promise<{ message: string; lab: { id: string; name: string; status: string }; user: { id: string; email: string; full_name: string } }> {
   return api.post("/api/v1/auth/register/lab", input, false);
+}
+
+
+// ---- lab documents (onboarding verification) -------------------------------
+export interface LabDocumentOut {
+  id: string;
+  lab_id: string;
+  document_type: string;
+  file_name: string;
+  content_type: string | null;
+  uploaded_at: string | null;
+}
+
+export async function uploadLabDocument(file: File, documentType: string): Promise<LabDocumentOut> {
+  const token = getToken();
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE_URL}/api/v1/auth/lab/documents?document_type=${encodeURIComponent(documentType)}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  const data = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const message = (data && (data.detail?.msg || data.detail || data.message)) || `Request failed (${res.status})`;
+    throw new ApiError(res.status, data?.detail ?? data, String(message));
+  }
+  return data as LabDocumentOut;
+}
+
+export function getMyLabDocuments(): Promise<LabDocumentOut[]> {
+  return api.get<LabDocumentOut[]>("/api/v1/auth/lab/documents");
+}
+
+export function getLabDocumentsAdmin(labId: string): Promise<LabDocumentOut[]> {
+  return api.get<LabDocumentOut[]>(`/api/v1/auth/admin/labs/${labId}/documents`);
+}
+
+// Authenticated download: the backend returns a short-lived presigned R2 URL
+// as JSON (an authenticated, same-origin fetch — no CORS issue). We then open
+// that URL via plain browser navigation, which isn't subject to CORS the way
+// fetch()/XHR reading a cross-origin redirect response would be.
+export async function openLabDocumentDownload(labId: string, docId: string): Promise<void> {
+  const { url } = await api.get<{ url: string }>(
+    `/api/v1/auth/admin/labs/${labId}/documents/${docId}/download`
+  );
+  window.open(url, "_blank", "noopener,noreferrer");
 }

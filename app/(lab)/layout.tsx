@@ -1,4 +1,8 @@
 // app/(lab)/layout.tsx — guards all lab routes + shared nav shell.
+// A PENDING lab sees a minimal onboarding shell (upload verification docs,
+// see status) instead of the normal nav + dashboard. Real lab endpoints are
+// already blocked server-side (require_approved_lab) — this is just the
+// matching frontend experience.
 "use client";
 import { useState } from "react";
 import Link from "next/link";
@@ -7,6 +11,7 @@ import { Menu, X } from "lucide-react";
 import { RequireRole } from "@/components/RequireRole";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { LabOnboarding } from "@/components/LabOnboarding";
 
 const NAV = [
   { href: "/lab", label: "Results" },
@@ -71,11 +76,44 @@ function LabNav() {
   );
 }
 
+// Minimal shell shown to a pending lab — brand + sign out only, no dashboard nav.
+function PendingLabShell({ children }: { children: React.ReactNode }) {
+  const { logout } = useAuth();
+  return (
+    <div className="min-h-screen">
+      <header className="border-b">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+          <span className="font-semibold">HealthTrack <span className="font-normal text-muted-foreground">· Lab</span></span>
+          <Button variant="outline" size="sm" onClick={logout}>Sign out</Button>
+        </div>
+      </header>
+      <main>{children}</main>
+    </div>
+  );
+}
+
 export default function LabLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireRole role="lab">
+      <LabGate>{children}</LabGate>
+    </RequireRole>
+  );
+}
+
+// Inside RequireRole so `user` is guaranteed non-null here.
+function LabGate({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.lab_status && user.lab_status !== "approved") {
+    return (
+      <PendingLabShell>
+        <LabOnboarding status={user.lab_status} />
+      </PendingLabShell>
+    );
+  }
+  return (
+    <>
       <LabNav />
       <main>{children}</main>
-    </RequireRole>
+    </>
   );
 }

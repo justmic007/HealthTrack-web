@@ -4,10 +4,13 @@
 //   approved -> Suspend
 //   suspended/rejected -> Reactivate (approve)
 // Deactivate-never-delete: labs are never removed, only status-changed.
+// Each card can expand to show the lab's uploaded verification documents
+// (CLIA cert, accreditation, etc.) with download links, so approval is an
+// informed decision — not just CLIA/address text, but the actual documents.
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getAllLabs, updateLabStatus, AdminLab } from "@/lib/api";
+import { getAllLabs, updateLabStatus, AdminLab, getLabDocumentsAdmin, openLabDocumentDownload, LabDocumentOut } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -25,11 +28,46 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${cls}`}>{status}</span>;
 }
 
+function LabDocuments({ labId }: { labId: string }) {
+  const [docs, setDocs] = useState<LabDocumentOut[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getLabDocumentsAdmin(labId)
+      .then(setDocs)
+      .catch(() => setError("Could not load documents"));
+  }, [labId]);
+
+  if (error) return <p className="text-xs text-rose-600">{error}</p>;
+  if (docs === null) return <p className="text-xs text-muted-foreground">Loading documents…</p>;
+  if (docs.length === 0) return <p className="text-xs text-muted-foreground">No verification documents uploaded yet.</p>;
+
+  return (
+    <ul className="space-y-1.5">
+      {docs.map((d) => (
+        <li key={d.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
+          <div>
+            <span className="font-medium">{d.file_name}</span>
+            <span className="ml-2 capitalize text-muted-foreground">{d.document_type.replace(/_/g, " ")}</span>
+          </div>
+          <button
+            onClick={() => openLabDocumentDownload(labId, d.id).catch(() => alert("Download failed. Try again."))}
+            className="font-medium text-primary hover:underline"
+          >
+            Download
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function AdminLabs() {
   const [labs, setLabs] = useState<AdminLab[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLabs(null); setError(null);
@@ -43,7 +81,6 @@ export default function AdminLabs() {
     setBusy(labId); setError(null);
     try {
       const updated = await updateLabStatus(labId, status);
-      // update in place so the new status/badge shows; keeps it in the current view
       setLabs((cur) => (cur ? cur.map((l) => (l.id === labId ? { ...l, ...updated } : l)) : cur));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed");
@@ -59,7 +96,6 @@ export default function AdminLabs() {
         Every lab on the platform. Approve pending labs, suspend or reactivate active ones.
       </p>
 
-      {/* status filter */}
       <div className="mb-6 flex flex-wrap gap-2">
         {STATUSES.map((s) => (
           <button key={s} onClick={() => setFilter(s)}
@@ -94,6 +130,21 @@ export default function AdminLabs() {
                   <div><span className="text-foreground">Phone:</span> {lab.phone ?? "—"}</div>
                   <div><span className="text-foreground">Address:</span> {lab.address}</div>
                 </div>
+
+                <div>
+                  <button
+                    onClick={() => setExpanded((cur) => (cur === lab.id ? null : lab.id))}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    {expanded === lab.id ? "Hide verification documents" : "View verification documents"}
+                  </button>
+                  {expanded === lab.id && (
+                    <div className="mt-2">
+                      <LabDocuments labId={lab.id} />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-2 pt-1">
                   {lab.status === "pending" && (
                     <>
