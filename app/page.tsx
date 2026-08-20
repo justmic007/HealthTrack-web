@@ -219,6 +219,47 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <Eyebrow>Grounded in real sources</Eyebrow>
+          <h2 className="max-w-2xl text-3xl font-semibold tracking-tight">
+            Explanations are backed by citations, not guesses
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            The advisor doesn&apos;t invent medical explanations. Every &ldquo;what this means&rdquo; is grounded in a
+            curated knowledge base &mdash; 30 sourced passages from MedlinePlus, WHO, CDC, Mayo Clinic, Cleveland Clinic,
+            and NORD, covering diabetes, cholesterol, hypertension, anemia, sickle cell disease, malaria, and typhoid.
+          </p>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-background p-6 sm:p-8">
+              <div className="font-semibold">Numeric flagging</div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Five core analytes &mdash; HbA1c, Total Cholesterol, LDL, HDL, and Triglycerides &mdash; are compared against
+                reference ranges read directly from MedlinePlus and Johns Hopkins Medicine, one citation per number.
+                Other numeric results are extracted and shown, but flagged &ldquo;unknown&rdquo; rather than guessed.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-background p-6 sm:p-8">
+              <div className="font-semibold">Coverage grows deliberately</div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Rapid, titer, and graded tests (malaria, typhoid, and others) are flagged against the assay&apos;s own
+                reported cutoff or expected value &mdash; never a lab-invented range. New sourced ranges are added
+                over time; accuracy comes before coverage.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-2">
+            {["MedlinePlus", "WHO", "CDC", "Mayo Clinic", "Cleveland Clinic", "NORD", "Johns Hopkins Medicine"].map((src) => (
+              <span key={src} className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+                {src}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ---- CTA ---- */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
