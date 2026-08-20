@@ -1,6 +1,7 @@
 // components/LabOnboarding.tsx — shown to a lab user whose lab isn't approved
 // yet. Lets them upload verification documents (CLIA cert, accreditation,
-// etc.) and see what's already been submitted, while awaiting admin review.
+// etc.), see the review status of each, and see any rejection note so they
+// know what to fix.
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -32,6 +33,16 @@ const STATUS_COPY: Record<string, { title: string; body: string }> = {
     body: "Contact an administrator for details.",
   },
 };
+
+function DocStatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    approved: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    pending: "border-amber-200 bg-amber-50 text-amber-700",
+    rejected: "border-rose-200 bg-rose-50 text-rose-700",
+  };
+  const cls = map[status] ?? "border-muted bg-muted text-muted-foreground";
+  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${cls}`}>{status}</span>;
+}
 
 export function LabOnboarding({ status }: { status: string }) {
   const [docs, setDocs] = useState<LabDocumentOut[]>([]);
@@ -71,6 +82,7 @@ export function LabOnboarding({ status }: { status: string }) {
   }
 
   const copy = STATUS_COPY[status] ?? STATUS_COPY.pending;
+  const rejectedCount = docs.filter((d) => d.status === "rejected").length;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 py-8">
@@ -79,6 +91,15 @@ export function LabOnboarding({ status }: { status: string }) {
           <CardTitle>{copy.title}</CardTitle>
           <CardDescription>{copy.body}</CardDescription>
         </CardHeader>
+        {rejectedCount > 0 && (
+          <CardContent>
+            <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {rejectedCount === 1
+                ? "One of your documents was not approved — see the note below and upload a replacement."
+                : `${rejectedCount} of your documents were not approved — see the notes below and upload replacements.`}
+            </p>
+          </CardContent>
+        )}
       </Card>
 
       <Card>
@@ -121,15 +142,23 @@ export function LabOnboarding({ status }: { status: string }) {
           ) : (
             <ul className="space-y-2">
               {docs.map((d) => (
-                <li key={d.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                  <div>
-                    <p className="font-medium">{d.file_name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{d.document_type.replace(/_/g, " ")}</p>
+                <li key={d.id} className="rounded-md border px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{d.file_name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{d.document_type.replace(/_/g, " ")}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <DocStatusBadge status={d.status} />
+                      {d.uploaded_at && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(d.uploaded_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {d.uploaded_at && (
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(d.uploaded_at).toLocaleDateString()}
-                    </span>
+                  {d.status === "rejected" && d.review_note && (
+                    <p className="mt-1.5 text-xs text-rose-700">Note: {d.review_note}</p>
                   )}
                 </li>
               ))}
