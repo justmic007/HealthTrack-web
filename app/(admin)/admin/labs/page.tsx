@@ -10,7 +10,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getAllLabs, updateLabStatus, AdminLab, getLabDocumentsAdmin, openLabDocumentDownload, LabDocumentOut } from "@/lib/api";
+import { getAllLabs, updateLabStatus, AdminLab, getLabDocumentsAdmin, openLabDocumentDownload, updateLabDocumentStatus, LabDocumentOut } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -28,34 +28,110 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${cls}`}>{status}</span>;
 }
 
+function DocStatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    approved: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    pending: "border-amber-200 bg-amber-50 text-amber-700",
+    rejected: "border-rose-200 bg-rose-50 text-rose-700",
+  };
+  const cls = map[status] ?? "border-muted bg-muted text-muted-foreground";
+  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${cls}`}>{status}</span>;
+}
+
 function LabDocuments({ labId }: { labId: string }) {
   const [docs, setDocs] = useState<LabDocumentOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busyDoc, setBusyDoc] = useState<string | null>(null);
+  const [rejectingDoc, setRejectingDoc] = useState<string | null>(null);
+  const [note, setNote] = useState("");
 
-  useEffect(() => {
+  const load = () => {
     getLabDocumentsAdmin(labId)
       .then(setDocs)
       .catch(() => setError("Could not load documents"));
-  }, [labId]);
+  };
+  useEffect(load, [labId]);
+
+  async function approve(docId: string) {
+    setBusyDoc(docId);
+    try {
+      await updateLabDocumentStatus(labId, docId, "approved");
+      load();
+    } catch {
+      alert("Could not approve document. Try again.");
+    } finally {
+      setBusyDoc(null);
+    }
+  }
+
+  async function reject(docId: string) {
+    setBusyDoc(docId);
+    try {
+      await updateLabDocumentStatus(labId, docId, "rejected", note.trim() || undefined);
+      setRejectingDoc(null);
+      setNote("");
+      load();
+    } catch {
+      alert("Could not reject document. Try again.");
+    } finally {
+      setBusyDoc(null);
+    }
+  }
 
   if (error) return <p className="text-xs text-rose-600">{error}</p>;
   if (docs === null) return <p className="text-xs text-muted-foreground">Loading documents…</p>;
   if (docs.length === 0) return <p className="text-xs text-muted-foreground">No verification documents uploaded yet.</p>;
 
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {docs.map((d) => (
-        <li key={d.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
-          <div>
-            <span className="font-medium">{d.file_name}</span>
-            <span className="ml-2 capitalize text-muted-foreground">{d.document_type.replace(/_/g, " ")}</span>
+        <li key={d.id} className="rounded-md border bg-muted/30 px-3 py-2 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{d.file_name}</span>
+              <span className="capitalize text-muted-foreground">{d.document_type.replace(/_/g, " ")}</span>
+              <DocStatusBadge status={d.status} />
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <button
+                onClick={() => openLabDocumentDownload(labId, d.id).catch(() => alert("Download failed. Try again."))}
+                className="font-medium text-primary hover:underline"
+              >
+                Download
+              </button>
+              {d.status !== "approved" && (
+                <button onClick={() => approve(d.id)} disabled={busyDoc === d.id}
+                  className="font-medium text-emerald-700 hover:underline disabled:opacity-50">
+                  {busyDoc === d.id ? "…" : "Approve"}
+                </button>
+              )}
+              {d.status !== "rejected" && (
+                <button onClick={() => setRejectingDoc(rejectingDoc === d.id ? null : d.id)}
+                  className="font-medium text-rose-700 hover:underline">
+                  Reject
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            onClick={() => openLabDocumentDownload(labId, d.id).catch(() => alert("Download failed. Try again."))}
-            className="font-medium text-primary hover:underline"
-          >
-            Download
-          </button>
+
+          {d.status === "rejected" && d.review_note && (
+            <p className="mt-1.5 text-muted-foreground">Note: {d.review_note}</p>
+          )}
+
+          {rejectingDoc === d.id && (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Reason for rejection (optional)"
+                className="w-full rounded-md border px-2 py-1 text-xs"
+              />
+              <button onClick={() => reject(d.id)} disabled={busyDoc === d.id}
+                className="shrink-0 font-medium text-rose-700 hover:underline disabled:opacity-50">
+                {busyDoc === d.id ? "…" : "Confirm"}
+              </button>
+            </div>
+          )}
         </li>
       ))}
     </ul>

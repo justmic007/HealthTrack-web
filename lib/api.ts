@@ -674,6 +674,10 @@ export interface LabDocumentOut {
   file_name: string;
   content_type: string | null;
   uploaded_at: string | null;
+  status: string; // "pending" | "approved" | "rejected"
+  review_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
 }
 
 export async function uploadLabDocument(file: File, documentType: string): Promise<LabDocumentOut> {
@@ -710,4 +714,17 @@ export async function openLabDocumentDownload(labId: string, docId: string): Pro
     `/api/v1/auth/admin/labs/${labId}/documents/${docId}/download`
   );
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+
+export function updateLabDocumentStatus(
+  labId: string,
+  docId: string,
+  status: "approved" | "rejected",
+  reviewNote?: string
+): Promise<LabDocumentOut> {
+  return api.put<LabDocumentOut>(
+    `/api/v1/auth/admin/labs/${labId}/documents/${docId}/status`,
+    { status, review_note: reviewNote ?? null }
+  );
 }
