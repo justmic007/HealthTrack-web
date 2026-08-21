@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HealthTrack",
-  description: "View your test results, trends, and grounded wellness guidance.",
+  title: "HealthTrack — your lab results, explained",
+  description: "A multi-role health-records platform with AI-assisted, non-diagnostic guidance. Portfolio build on synthetic data.",
 };
 
 export default function RootLayout({
