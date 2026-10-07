@@ -129,6 +129,19 @@ export async function login(email: string, password: string): Promise<LoginRespo
     return data;
 }
 
+// One-click demo session. The API decides which (demo-only) account to use;
+// the browser never holds a demo email or password.
+export async function demoLogin(role: string): Promise<LoginResponse> {
+    const data = await api.post<LoginResponse>(
+        "/api/v1/auth/demo-login",
+        { role },
+        false,
+    );
+    setToken(data.access_token);
+    if (data.refresh_token) setRefreshToken(data.refresh_token);
+    return data;
+}
+
 export type CurrentUser = {
     id: string;
     email: string;
