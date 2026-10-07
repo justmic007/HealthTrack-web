@@ -3,6 +3,7 @@
 // Color discipline: teal = brand/interaction; emerald/amber/rose = clinical status
 // only. Signature: the hero IS a real "result -> explanation" product moment.
 import Link from "next/link";
+import { DemoAccess } from "@/components/DemoAccess";
 
 export const metadata = {
   title: "HealthTrack — your lab results, explained",
@@ -70,15 +71,15 @@ export default function Landing() {
             with trends over time and grounded guidance that assists, but never
             diagnoses.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/register" className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
-              Create an account
-            </Link>
-            <Link href="/login" className="rounded-md border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-muted">
-              Sign in
-            </Link>
+          <div className="mt-8 max-w-md">
+            <DemoAccess />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Prefer your own account?{" "}
+              <Link href="/register" className="font-medium text-primary hover:underline">Create one</Link>
+              {" · "}
+              <Link href="/login" className="font-medium text-primary hover:underline">Sign in</Link>
+            </p>
           </div>
-
           {/* signature artifact: a result being explained */}
           <div className="mt-16 overflow-hidden rounded-2xl border border-border shadow-sm">
             <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3">
@@ -265,15 +266,16 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">See it for yourself</h2>
           <p className="mx-auto mt-4 max-w-md text-muted-foreground">
-            Create an account and explore the patient experience, or sign in.
+            Try the demo with one click, or create an account.
           </p>
-          <div className="mt-8 flex justify-center gap-3">
-            <Link href="/register" className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
-              Create an account
-            </Link>
-            <Link href="/login" className="rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-muted">
-              Sign in
-            </Link>
+          <div className="mx-auto mt-8 max-w-sm">
+            <DemoAccess />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Or{" "}
+              <Link href="/register" className="font-medium text-primary hover:underline">create an account</Link>
+              {" · "}
+              <Link href="/login" className="font-medium text-primary hover:underline">sign in</Link>
+            </p>
           </div>
         </div>
       </section>
