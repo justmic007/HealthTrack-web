@@ -70,12 +70,13 @@ Each role has its own route group and layout with its own navigation.
 
 ## Auth and role gating
 
-- Sign-in goes through `lib/api.ts`, which stores the session tokens client-side and attaches them to API calls. Demo access uses the same token flow via the API's demo endpoint.
-- `lib/auth-context.tsx` loads the current user and routes each role to its own home.
-- `RequireRole` protects each role's route group.
-- Sign-in is gated server-side, and the UI branches on the error codes: `email_not_verified` offers a resend, and `account_pending_approval` explains that an admin must approve the account.
-- Labs can sign in before approval. Until an admin approves the lab, the lab area shows the onboarding view instead of the dashboard.
-- The demo admin gets `demo_read_only` on any write, which the UI shows as a read-only notice.
+- **Session tokens.** `lib/api.ts` stores the access token and the refresh token in `localStorage` and attaches the access token to API calls. Demo access uses the same token flow through the API's demo endpoint.
+- **Refresh.** On a 401 the client exchanges the refresh token for a new pair. Refresh tokens are single-use (rotated), so one shared in-flight request is reused across concurrent 401s instead of firing two refreshes at once.
+- **Current user and routing.** `lib/auth-context.tsx` loads the current user from `/auth/me` on startup, clears the session if that fails, and maps each role to its home route (`patient` to `/app`, `caregiver` to `/care`, `lab` to `/lab`, `admin` to `/admin`).
+- **Route guards.** `RequireRole` wraps all four role layouts (patient, caregiver, lab and admin) and sends a signed-in user with the wrong role to their own home.
+- **Sign-in gates.** The API enforces them, and the UI branches on the error codes: `email_not_verified` offers a resend, and `account_pending_approval` explains that an admin must approve the account.
+- **Lab onboarding.** Labs can sign in before approval. Until an admin approves the lab, the lab area shows the onboarding view instead of the dashboard.
+- **Demo mode.** The demo admin gets `demo_read_only` on any write, which the UI shows as a read-only notice.
 
 ## Environment variables
 
@@ -113,6 +114,7 @@ Pushes to `main` deploy to Vercel automatically. Set `NEXT_PUBLIC_API_BASE_URL` 
 ## Design decisions
 
 - **No credentials in the frontend.** The repository is public, so demo access is a role request to the API, which only issues sessions for dedicated demo accounts.
+- **Token storage trade-off.** Tokens are kept in `localStorage` for simplicity. That exposes them to any script injected into the page, so a production system would prefer httpOnly cookies with short-lived access tokens. This build limits the risk by running on synthetic data, and refresh tokens rotate on every use.
 - **Server-side gates, client-side messaging.** Access rules live in the API. The UI only explains them and routes accordingly.
 - **Deterministic trends, separate AI guidance.** Trend analysis is computed without a language model, and the AI-assisted explanation is kept separate and clearly labelled non-diagnostic.
 
