@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HealthTrack Web
 
-## Getting Started
+Frontend for **HealthTrack**, a multi-role health-records platform with AI-assisted, non-diagnostic guidance on lab results.
 
-First, run the development server:
+**Live demo:** https://healthtrack-app.vercel.app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> Portfolio build on **synthetic data only**. HealthTrack is not a medical device and does not give medical advice.
+
+## Try it
+
+Open the live demo and click a role on the landing page. No sign-up or credentials are needed.
+
+| Role | What you can explore |
+|---|---|
+| Patient | Results, trends, AI guidance, reminders, sharing with a caregiver |
+| Caregiver | Results that patients have shared with you |
+| Lab | Result uploads and PDF extraction |
+| Admin | Lab and document review, user management, platform analytics |
+
+Demo sessions are issued by the API, so the browser never holds a demo email or password. The demo admin is read-only and sees demo data only. The first sign-in can take up to a minute while the free-tier API wakes up.
+
+## Features
+
+- Role-based areas for patients, caregivers, labs and admins
+- Email verification before sign-in, with resend and password reset flows
+- Lab self-registration with a document-onboarding step: labs upload verification documents, and admins approve or reject each one before the lab goes live
+- Caregiver license approval by admins
+- Lab results with flags, trends over time and shareable access for caregivers
+- AI-assisted guidance grounded in sourced references (MedlinePlus, WHO, CDC and others), kept separate from the deterministic trend analysis
+- Mobile-friendly navigation across all four role layouts
+
+## Stack
+
+Next.js (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Yarn. Deployed on Vercel.
+
+The API is a separate FastAPI service (private repository), deployed on Render with Postgres on Neon and object storage on Cloudflare R2.
+
+## Project structure
+
+```
+app/
+  (patient)/      patient area: home, results, trends, advisor, reminders, sharing, profile
+  (caregiver)/    caregiver area: results shared with you
+  (lab)/          lab area: results, upload, onboarding gate
+  (admin)/        admin area: overview, labs, users
+  login/ register/ forgot-password/ reset-password/ verify-email/   public auth pages
+  page.tsx        landing page with one-click demo access
+components/
+  DemoAccess.tsx      one-click demo sign-in (sends only a role to the API)
+  LabOnboarding.tsx   document upload and review status for unapproved labs
+  RequireRole.tsx     role guard for protected routes
+  ui/                 shadcn/ui primitives
+lib/
+  api.ts              typed API client and auth calls
+  auth-context.tsx    session state and role-based routing
+  demo-accounts.ts    demo role labels (no credentials)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Each role has its own route group and layout with its own navigation.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Area | Routes |
+|---|---|
+| Public | `/`, `/login`, `/register`, `/register/lab`, `/forgot-password`, `/reset-password`, `/verify-email` |
+| Patient | `/app`, `/results`, `/results/[id]`, `/trends`, `/advisor`, `/reminders`, `/sharing`, `/profile` |
+| Caregiver | `/care`, `/care/results/[id]` |
+| Lab | `/lab`, `/lab/upload`, `/lab/results/[id]` |
+| Admin | `/admin`, `/admin/labs`, `/admin/users` |
 
-## Learn More
+## Auth and role gating
 
-To learn more about Next.js, take a look at the following resources:
+- Sign-in goes through `lib/api.ts`, which stores the session tokens client-side and attaches them to API calls. Demo access uses the same token flow via the API's demo endpoint.
+- `lib/auth-context.tsx` loads the current user and routes each role to its own home.
+- `RequireRole` protects each role's route group.
+- Sign-in is gated server-side, and the UI branches on the error codes: `email_not_verified` offers a resend, and `account_pending_approval` explains that an admin must approve the account.
+- Labs can sign in before approval. Until an admin approves the lab, the lab area shows the onboarding view instead of the dashboard.
+- The demo admin gets `demo_read_only` on any write, which the UI shows as a read-only notice.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL of the HealthTrack API |
 
-## Deploy on Vercel
+Variables prefixed `NEXT_PUBLIC_` are bundled into the browser build, so they must never hold secrets. Copy `.env.example` to `.env.local` to set it.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | What it does |
+|---|---|
+| `yarn dev` | Development server (webpack) on http://localhost:3000 |
+| `yarn build` | Production build |
+| `yarn start` | Serve the production build |
+| `yarn lint` | ESLint |
+
+## Run locally
+
+Requires Node 24 (`nvm use 24`) and Yarn.
+
+```bash
+yarn install
+cp .env.example .env.local
+yarn dev
+```
+
+To use the demo buttons against a local API, run the API with `DEMO_LOGIN_ENABLED=true` and seed the demo accounts with `python seed_data.py demo`.
+
+## Deployment
+
+Pushes to `main` deploy to Vercel automatically. Set `NEXT_PUBLIC_API_BASE_URL` in the Vercel project to the hosted API.
+
+## Design decisions
+
+- **No credentials in the frontend.** The repository is public, so demo access is a role request to the API, which only issues sessions for dedicated demo accounts.
+- **Server-side gates, client-side messaging.** Access rules live in the API. The UI only explains them and routes accordingly.
+- **Deterministic trends, separate AI guidance.** Trend analysis is computed without a language model, and the AI-assisted explanation is kept separate and clearly labelled non-diagnostic.
+
+## Safety note
+
+All data in this project is synthetic. The guidance shown is informational and non-diagnostic, and it is not a substitute for a clinician.
